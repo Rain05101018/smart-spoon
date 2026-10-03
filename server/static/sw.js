@@ -6,11 +6,11 @@
  * 注意：SW 只在 HTTPS 或 localhost 下生效（与 Web Bluetooth 要求一致）。
  */
 
-const CACHE = 'spoon-v8';
+const CACHE = 'spoon-v9';
 const PRECACHE = [
   '/spoon',
-  '/static/spoon.css?v=8',
-  '/static/spoon.js?v=8',
+  '/static/spoon.css?v=9',
+  '/static/spoon.js?v=9',
   '/static/manifest.webmanifest',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',

@@ -616,7 +616,6 @@ body {
   justify-content: center;
 }
 .ring-center .intake-num { font-size: clamp(40px, 12vw, 52px); }
-.intake-goal { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
 /* ---------------- 本周统计 ---------------- */
 .week-grid {

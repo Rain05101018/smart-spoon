@@ -585,8 +585,6 @@ function mealElapsedSec() {
 }
 
 let _lastBites = 0;
-const RING_LEN = 552.9;   // 2π × 88，与 CSS 中 dasharray 一致
-
 function renderLive() {
   if (state.meal) {
     const m = state.meal;
@@ -605,19 +603,9 @@ function renderLive() {
     $('meal-spoon-weight').textContent =
       w != null ? `${w.toFixed(1)} g` : '--';          // 无数据兜底（Part 25）
 
-    // 摄入进度环：目标 = 初始食物重量
+    // 摄入进度环：装饰性满环（无目标摄入设定）
     const ring = $('intake-ring');
-    const goalEl = $('intake-goal');
-    if (ring) {
-      if (m.startWeight != null && m.startWeight > 0) {
-        const progress = Math.min(m.intake / m.startWeight, 1);
-        ring.style.strokeDashoffset = String(RING_LEN * (1 - progress));
-        goalEl.textContent = `目标 ${m.startWeight.toFixed(0)} g · ${Math.round(progress * 100)}%`;
-      } else {
-        ring.style.strokeDashoffset = String(RING_LEN);
-        goalEl.textContent = '等待稳定读数…';
-      }
-    }
+    if (ring) ring.style.strokeDashoffset = '0';
   } else if (spoonState.weight != null) {
     const w = currentWeight();
     $('pre-weight').textContent = w != null ? w.toFixed(1) + ' g' : '--';

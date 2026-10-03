@@ -11,7 +11,7 @@
   <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='spoon.css') }}?v=8">
+  <link rel="stylesheet" href="{{ url_for('static', filename='spoon.css') }}?v=9">
 </head>
 <body>
   <header class="app-header">
@@ -139,7 +139,6 @@
               <div class="intake-num" aria-live="polite" aria-atomic="true" aria-label="当前摄入克数">
                 <span id="big-intake">0.0</span><span class="intake-unit">g</span>
               </div>
-              <div class="intake-goal" id="intake-goal">目标 -- g</div>
             </div>
           </div>
           <div class="intake-dish" id="meal-dish-label"></div>
@@ -235,6 +234,6 @@
     <a href="/">经典网页版</a> · 智味勺 · 让每一餐都被看见
   </footer>
 
-  <script src="{{ url_for('static', filename='spoon.js') }}?v=8"></script>
+  <script src="{{ url_for('static', filename='spoon.js') }}?v=9"></script>
 </body>
 </html>
