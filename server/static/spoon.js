@@ -86,9 +86,10 @@ const $ = (id) => document.getElementById(id);
 
 document.addEventListener('DOMContentLoaded', () => {
   loadRecords();
-  renderRecords();
-  runBluetoothDiagnosis();
-  renderConnPanel();
+  // 每一步独立容错：任何一个环节出错都不能影响计时器和后续初始化
+  try { renderRecords(); } catch (e) { console.warn('init: renderRecords 失败', e); }
+  try { runBluetoothDiagnosis(); } catch (e) { console.warn('init: 蓝牙诊断失败', e); }
+  try { renderConnPanel(); } catch (e) { console.warn('init: renderConnPanel 失败', e); }
   setInterval(tickMealUI, 1000);
   registerServiceWorker();
 });
@@ -639,10 +640,11 @@ function endMeal() {
     synced: false,
   };
   state.meal = null;
+  haptic(30);   // 结束用餐的触觉确认
 
   state.records.unshift(state.result);
   saveRecords();
-  renderRecords();
+  try { renderRecords(); } catch (e) { console.warn('renderRecords 失败', e); }
 
   $('during-active').style.display = 'none';
   $('during-result').style.display = 'block';
@@ -666,7 +668,7 @@ function endMeal() {
       ${r.avg_per_bite_g != null ? `<div class="summary-row">平均每口：${r.avg_per_bite_g} g</div>` : ''}
       ${r.pace_bites_per_min != null ? `<div class="summary-row">进餐节奏：${r.pace_bites_per_min} 口/分钟</div>` : ''}
     </div>`;
-  drawResultChart();
+  try { drawResultChart(); } catch (e) { console.warn('drawResultChart 失败', e); }
 
   requestAnimationFrame(() => {
     document.querySelectorAll('#result-summary .result-num').forEach(el => {
@@ -1004,7 +1006,12 @@ function loadRecords() {
 }
 
 function saveRecords() {
-  localStorage.setItem(RECORDS_KEY, JSON.stringify(state.records));
+  try {
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(state.records));
+  } catch (e) {
+    // 隐私模式 / 内嵌预览等环境下 localStorage 可能被禁用——记录先留在内存里，不阻断流程
+    console.warn('本地存储不可用，记录仅保存在内存中', e);
+  }
 }
 
 async function syncRecord(record) {
