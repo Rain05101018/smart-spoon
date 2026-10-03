@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智味勺 · 拍照识餐 Demo</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">🥣</span>
+      <span class="brand-name">智味勺</span>
+    </div>
+    <span class="brand-sub">拍照识餐 Demo · <a href="/spoon" style="color:#667eea">前往完整版（蓝牙连接勺子）→</a></span>
+  </header>
+
+  <!-- 三步流程指示器，仅在“快速开始”流程中显示 -->
+  <div class="stepper" id="stepper">
+    <div class="step active" data-step="1">
+      <span class="step-num">1</span>
+      <span class="step-label">餐前识别</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" data-step="2">
+      <span class="step-num">2</span>
+      <span class="step-label">用餐中</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" data-step="3">
+      <span class="step-num">3</span>
+      <span class="step-label">用餐结果</span>
+    </div>
+  </div>
+
+  <main class="content">
+
+    <!-- ============ 快速开始（主线） ============ -->
+    <section id="view-quickstart" class="view active">
+
+      <!-- 第一步：餐前识别 -->
+      <div id="panel-step1" class="step-panel active">
+        <div class="card upload-card">
+          <div class="upload-icon">📷</div>
+          <h2>拍照 / 上传菜品照片</h2>
+          <p class="muted">上传一张餐盘照片，自动识别菜品名称</p>
+
+          <label class="btn btn-primary btn-lg" for="fileInput">选择照片</label>
+          <input type="file" id="fileInput" accept="image/*" capture="environment" hidden>
+
+          <div id="previewWrap" class="preview-wrap hidden">
+            <img id="previewImg" class="preview-img" alt="预览图">
+          </div>
+        </div>
+
+        <div id="recognizeLoading" class="loading hidden">
+          <div class="spinner"></div>
+          <span>正在识别中...</span>
+        </div>
+
+        <div id="recognizeError" class="error-box hidden"></div>
+
+        <div id="recognizeResult" class="result-list hidden">
+          <h3 class="section-title">识别结果，请选择这一餐吃的菜品</h3>
+          <div id="dishCards" class="dish-cards"></div>
+          <button class="btn btn-primary btn-lg btn-block" id="btnConfirmDish" disabled>
+            确认，开始用餐
+          </button>
+        </div>
+      </div>
+
+      <!-- 第二步：用餐中 -->
+      <div id="panel-step2" class="step-panel hidden">
+        <div class="card">
+          <h2>用餐中</h2>
+          <p class="muted">专注享用这一餐，完成后点击下方按钮</p>
+
+          <div class="chosen-dish" id="chosenDishLabel"></div>
+
+          <div class="timer" id="timerDisplay">00:00</div>
+
+          <button class="btn btn-primary btn-lg btn-block" id="btnFinishMeal">
+            完成用餐
+          </button>
+        </div>
+      </div>
+
+      <!-- 第三步：用餐结果 -->
+      <div id="panel-step3" class="step-panel hidden">
+        <div class="card">
+          <h2>用餐结果</h2>
+          <div id="mealSummary" class="meal-summary"></div>
+
+          <div class="btn-row">
+            <button class="btn btn-outline btn-block" id="btnSaveFavorite">加入收藏</button>
+            <button class="btn btn-primary btn-block" id="btnSaveRecord">保存到用餐记录</button>
+          </div>
+          <button class="btn btn-text" id="btnRestart">重新开始一次识别</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============ 收藏食物 ============ -->
+    <section id="view-favorites" class="view hidden">
+      <h2 class="page-title">收藏食物</h2>
+      <div id="favoritesList" class="card-list"></div>
+      <p id="favoritesEmpty" class="muted empty-tip hidden">还没有收藏的食物，去识别一餐试试吧</p>
+    </section>
+
+    <!-- ============ 用餐记录 ============ -->
+    <section id="view-records" class="view hidden">
+      <h2 class="page-title">用餐记录</h2>
+      <div id="recordsList" class="card-list"></div>
+      <p id="recordsEmpty" class="muted empty-tip hidden">还没有用餐记录</p>
+    </section>
+
+    <!-- ============ 设置 ============ -->
+    <section id="view-settings" class="view hidden">
+      <h2 class="page-title">设置</h2>
+      <div class="card">
+        <h3 class="section-title">API 配置</h3>
+        <p class="muted">
+          百度菜品识别 API 的 Key / Secret 配置在项目根目录的 <code>.env</code> 文件中，
+          不在前端页面填写，避免泄露。
+        </p>
+      </div>
+      <div class="card">
+        <h3 class="section-title">本地数据</h3>
+        <p class="muted">收藏与用餐记录保存在浏览器本地，不会上传到服务器。</p>
+        <button class="btn btn-outline btn-block" id="btnClearData">清空本地收藏与记录</button>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-view="quickstart">
+      <span class="nav-icon">🚀</span><span class="nav-label">快速开始</span>
+    </button>
+    <button class="nav-item" data-view="favorites">
+      <span class="nav-icon">⭐</span><span class="nav-label">收藏食物</span>
+    </button>
+    <button class="nav-item" data-view="records">
+      <span class="nav-icon">📋</span><span class="nav-label">用餐记录</span>
+    </button>
+    <button class="nav-item" data-view="settings">
+      <span class="nav-icon">⚙️</span><span class="nav-label">设置</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

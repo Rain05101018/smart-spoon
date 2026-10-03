@@ -1,0 +1,15 @@
+# Render.com 一键部署配置（免费版）
+# 使用方法：在 Render 后台导入此 GitHub 仓库，Render 会自动读取此文件
+services:
+  - type: web
+    name: smart-spoon
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app.py"
+    envVars:
+      - key: PORT
+        value: 10000
+      # 部署后在 Render 控制台设置这两个环境变量：
+      # - BAIDU_API_KEY (你的百度 API Key)
+      # - BAIDU_SECRET_KEY (你的百度 Secret Key)
+    plan: free

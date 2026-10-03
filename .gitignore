@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.venv/
+ENV/
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment variables (contains API keys!)
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Flutter (keep the app code but ignore build artifacts)
+app/build/
+app/.dart_tool/
+app/.packages
+app/.plugin_manager
+pubspec.lock
+
+# Logs
+*.log
+flask.log
+meal_records.json
+
+# Temp
+*.tmp
+*.temp

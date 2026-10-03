@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#667eea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="智味勺：连接智能勺，自动记录每一餐的摄入、口数与热量">
+  <title>智味勺 · 智能用餐助手</title>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='spoon.css') }}?v=8">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <h1>🥄 智味勺</h1>
+      <div id="conn-status" class="status-chip disconnected" role="status" aria-live="polite"><span>未连接</span></div>
+    </div>
+  </header>
+
+  <nav class="tab-nav" role="tablist" aria-label="主要功能">
+    <button type="button" class="tab-btn active" data-tab="pre" role="tab" id="tab-pre"
+            aria-selected="true" aria-controls="panel-pre" onclick="switchTab('pre')">餐前</button>
+    <button type="button" class="tab-btn" data-tab="during" role="tab" id="tab-during"
+            aria-selected="false" aria-controls="panel-during" onclick="switchTab('during')">用餐中</button>
+    <button type="button" class="tab-btn" data-tab="records" role="tab" id="tab-records"
+            aria-selected="false" aria-controls="panel-records" onclick="switchTab('records')">记录</button>
+    <button type="button" class="tab-btn" data-tab="debug" role="tab" id="tab-debug"
+            aria-selected="false" aria-controls="panel-debug" onclick="switchTab('debug')">调试</button>
+  </nav>
+
+  <main class="app-main">
+
+    <!-- ============ 餐前（Part 10：确认食物、连接设备、准备开始） ============ -->
+    <section id="panel-pre" class="tab-panel active" role="tabpanel" aria-labelledby="tab-pre">
+
+     <div class="pre-grid">
+      <div class="card">
+        <h2>① 连接设备</h2>
+        <div id="bt-diag" class="diag-line">检测中…</div>
+        <div id="bluetooth-support-note" class="warn-box" style="display:none">
+          当前环境不支持 Web Bluetooth。请检查上方诊断信息的提示。
+        </div>
+
+        <!-- 连接状态机展示（T11 Part 6：状态而不是一个按钮） -->
+        <div id="conn-state-text" class="conn-state-text" role="status" aria-live="polite">
+          <span class="status-dot gray"></span>未连接
+        </div>
+        <div id="conn-error" class="error-inline" style="display:none" role="alert"></div>
+
+        <!-- 上次配对过的设备：一键回连 -->
+        <div id="known-devices" style="display:none"></div>
+
+        <div class="btn-col">
+          <button type="button" id="btn-connect-real" class="btn btn-primary" onclick="connectReal()">
+            🔵 配对新的勺子（蓝牙）
+          </button>
+          <button type="button" id="btn-mock" class="btn btn-outline" onclick="connectMock()">
+            🧪 模拟勺子（演示用）
+          </button>
+          <button type="button" id="btn-disconnect" class="btn btn-outline" style="display:none"
+                  onclick="disconnectSpoon(true)">断开连接</button>
+          <button type="button" id="btn-cancel-connect" class="btn btn-outline" style="display:none"
+                  onclick="cancelConnect()">取消连接</button>
+          <button type="button" id="btn-retry" class="btn btn-primary" style="display:none"
+                  onclick="retryConnect()">重试</button>
+        </div>
+        <div class="filter-row">
+          <label class="hint-inline" for="name-filter">设备名过滤（可选）：</label>
+          <input type="text" id="name-filter" placeholder="如 Spoon / XIAO，缩小配对列表">
+        </div>
+        <p class="hint" style="margin-top:10px">
+          提示：点「配对新的勺子」会弹出系统蓝牙选择框，选中你的勺子即完成配对；
+          断开后会自动尝试重连。⚠️ 请<strong>不要</strong>先在系统蓝牙设置里手动配对，
+          系统占用后网页会连不上。
+        </p>
+        <div class="tare-row">
+          <button id="btn-tare" class="btn btn-small" disabled onclick="sendTare()">
+            ⚖️ 去皮（TARE）
+          </button>
+          <span class="hint-inline">当前勺上：<b id="pre-weight">--</b></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>② 确认食物</h2>
+        <p class="hint">拍下这道菜，AI 给出识别结果，<strong>确认或修改后</strong>再开始（也可跳过）</p>
+        <div class="btn-row">
+          <button type="button" class="btn btn-outline" onclick="openCamera()">
+            📷 拍照
+          </button>
+          <label class="btn btn-outline">
+            🖼️ 相册
+            <input type="file" accept="image/*" hidden onchange="recognizeDish(this)">
+          </label>
+          <!-- 摄像头不可用时的降级文件选择 -->
+          <input type="file" id="file-camera" accept="image/*" capture="environment" hidden
+                 onchange="recognizeDish(this)">
+        </div>
+        <img id="food-preview" class="food-preview" style="display:none" alt="食物照片预览">
+        <div id="recognize-result" aria-live="polite"></div>
+        <!-- T11 Part 5：识别结果需用户 Confirm / Edit -->
+        <div id="detected-box" style="display:none"></div>
+        <div class="picked-row">已确认菜品：<strong id="picked-dish" data-calorie=""></strong></div>
+      </div>
+     </div>
+
+      <button type="button" id="btn-start-meal-conn" class="btn btn-primary btn-big" onclick="startMeal()">
+        ③ 开始用餐
+      </button>
+    </section>
+
+    <!-- ============ 用餐中（Part 11/12：信息分层 + 低打扰） ============ -->
+    <section id="panel-during" class="tab-panel" role="tabpanel" aria-labelledby="tab-during">
+
+      <div id="during-idle" class="card">
+        <div class="empty-hint">还没有开始用餐<br>去「餐前」页连接设备、确认食物后开始</div>
+      </div>
+
+      <div id="during-active" style="display:none">
+        <!-- 第一层：当前摄入（进度环 + 大数字） -->
+        <div class="card intake-card">
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+              <defs>
+                <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#667eea"/>
+                  <stop offset="100%" stop-color="#764ba2"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="100" cy="100" r="88"/>
+              <circle class="ring-fg" id="intake-ring" cx="100" cy="100" r="88"/>
+            </svg>
+            <div class="ring-center">
+              <div class="intake-label">当前摄入</div>
+              <div class="intake-num" aria-live="polite" aria-atomic="true" aria-label="当前摄入克数">
+                <span id="big-intake">0.0</span><span class="intake-unit">g</span>
+              </div>
+              <div class="intake-goal" id="intake-goal">目标 -- g</div>
+            </div>
+          </div>
+          <div class="intake-dish" id="meal-dish-label"></div>
+        </div>
+
+        <!-- 第二层：口数 / 记录状态 -->
+        <div class="card second-card">
+          <div class="second-grid">
+            <div><div class="second-num" id="meal-bites">0</div><div class="second-label">口数</div></div>
+            <div><div class="second-num" id="meal-elapsed">0秒</div><div class="second-label">时长</div></div>
+            <div><div class="second-num" id="meal-spoon-weight">--</div><div class="second-label">勺上重量</div></div>
+          </div>
+          <div id="meal-rec-status" class="second-line ok">记录中</div>
+        </div>
+
+        <button class="btn btn-primary btn-big" onclick="endMeal()">结束用餐</button>
+
+        <!-- 第三层：低调显示 -->
+        <div class="third-line" id="conn-status-meal">未连接</div>
+      </div>
+
+      <!-- 餐后结果（Part 10：餐后查看本次摄入和用餐数据） -->
+      <div id="during-result" style="display:none">
+        <div class="card">
+          <h2>本次用餐</h2>
+          <div id="result-summary"></div>
+          <canvas id="result-chart" class="chart"></canvas>
+          <p class="hint">已保存到「记录」页，并自动同步服务器。</p>
+          <button class="btn btn-outline" onclick="newMeal()">再来一餐</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 记录 ============ -->
+    <section id="panel-records" class="tab-panel" role="tabpanel" aria-labelledby="tab-records">
+      <!-- 本周统计（数据可视化） -->
+      <div class="card" id="week-stats-card" style="display:none">
+        <h2>本周概览</h2>
+        <div class="week-grid">
+          <div class="week-item"><div class="week-num" id="week-meals">0</div><div class="week-label">餐数</div></div>
+          <div class="week-item"><div class="week-num" id="week-intake">0</div><div class="week-label">总摄入 g</div></div>
+          <div class="week-item"><div class="week-num" id="week-cal">0</div><div class="week-label">总热量 kcal</div></div>
+          <div class="week-item"><div class="week-num" id="week-bites">0</div><div class="week-label">总口数</div></div>
+        </div>
+        <canvas id="week-chart" class="chart"></canvas>
+      </div>
+      <div class="card">
+        <div class="records-header">
+          <span id="records-summary">共 0 条记录</span>
+          <span>
+            <button id="btn-sync-all" class="btn btn-small" style="display:none"
+                    onclick="syncAll()">一键同步</button>
+            <button class="btn btn-small btn-danger-outline" onclick="clearRecords()">清空</button>
+          </span>
+        </div>
+        <div id="records-list"></div>
+      </div>
+    </section>
+
+    <!-- ============ 调试（Part 14：调试数据与产品界面分离） ============ -->
+    <section id="panel-debug" class="tab-panel" role="tabpanel" aria-labelledby="tab-debug">
+      <div class="card">
+        <h2>解析后的字段</h2>
+        <div id="dbg-parsed"><div class="empty-hint">暂无数据</div></div>
+      </div>
+      <div class="card">
+        <h2>重量曲线 <span class="hint-inline">（开发用）</span></h2>
+        <canvas id="dbg-chart" class="chart"></canvas>
+      </div>
+      <div class="card">
+        <h2>原始 BLE 消息 <span class="hint-inline">S,weight10,body,stable,mark</span></h2>
+        <div id="dbg-raw" class="packet-list">
+          <div class="empty-hint">等待 BLE 消息…</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ 摄像头取景弹窗 ============ -->
+  <div id="camera-modal" class="camera-modal" style="display:none" role="dialog" aria-label="拍照取景">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <div id="camera-error" class="camera-error" style="display:none"></div>
+    <div class="camera-controls">
+      <button type="button" class="cam-btn" onclick="closeCamera()" aria-label="关闭">✕</button>
+      <button type="button" class="cam-shutter" onclick="takePhoto()" aria-label="拍照"></button>
+      <button type="button" class="cam-btn" onclick="switchCamera()" aria-label="切换摄像头">🔄</button>
+    </div>
+  </div>
+  <canvas id="camera-canvas" hidden></canvas>
+
+  <footer class="app-footer">
+    <a href="/">经典网页版</a> · 智味勺 · 让每一餐都被看见
+  </footer>
+
+  <script src="{{ url_for('static', filename='spoon.js') }}?v=8"></script>
+</body>
+</html>
