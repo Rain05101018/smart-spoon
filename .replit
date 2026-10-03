@@ -1,0 +1,3 @@
+entrypoint = "server/app.py"
+modules = ["python3-11"]
+deps = ["pkgs.python311Packages.flask", "pkgs.python311Packages.requests", "pkgs.python311Packages.python-dotenv"]
